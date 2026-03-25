@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { scenarios, type Scenario } from './scenarios'
+import { getPracticalGuide } from './practicalGuides'
 import './styles.css'
 
 function fillTemplate(template: string, vars: Record<string, string>) {
@@ -73,6 +74,7 @@ export default function App() {
   })
 
   const primaryPrompt = active.prompts[0]
+  const practicalGuide = useMemo(() => getPracticalGuide(active.id), [active.id])
   const generatedPrompt = useMemo(() => {
     if (!primaryPrompt) return ''
     return fillTemplate(primaryPrompt.template, form)
@@ -88,6 +90,26 @@ export default function App() {
       window.setTimeout(() => setToast(null), 2000)
     }
   }
+
+  const guideText = useMemo(() => {
+    return [
+      `场景：${active.title}`,
+      '',
+      `目标：${practicalGuide.summary}`,
+      '',
+      '推荐工具：',
+      ...practicalGuide.tools.map((t, i) => `${i + 1}. ${t.name}（${t.category}）- ${t.usage}`),
+      '',
+      '建议Skill：',
+      ...practicalGuide.skills.map((s, i) => `${i + 1}. ${s}`),
+      '',
+      '操作步骤：',
+      ...practicalGuide.steps.map((s, i) => `${i + 1}. ${s}`),
+      '',
+      '落地产出：',
+      ...practicalGuide.outputs.map((o, i) => `${i + 1}. ${o}`),
+    ].join('\n')
+  }, [active.title, practicalGuide])
 
   return (
     <div className="app">
@@ -241,56 +263,65 @@ export default function App() {
 
                 <details open>
                   <summary>
-                    <span className="detailsTitle">提示词模板（可一键复制）</span>
-                    <span className="chev">直接粘贴到模型</span>
+                    <span className="detailsTitle">工具 + Skill + 操作步骤（实操方案）</span>
+                    <span className="chev">可直接按步骤执行</span>
                   </summary>
                   <div className="detailsBody">
-                    {active.prompts.map((p) => (
-                      <div key={p.title} className="promptBlock">
-                        <div className="promptHeader">
-                          <strong>{p.title}</strong>
-                          <div className="btnRow">
-                            <button className="btn btnPrimary" onClick={() => handleCopy(p.template, '提示词已复制')}>
-                              复制
-                            </button>
-                          </div>
-                        </div>
-                        <div className="promptBody">
-                          {p.description ? (
-                            <p style={{ margin: '0 0 10px', color: 'rgba(15,23,42,0.72)', lineHeight: 1.7 }}>{p.description}</p>
-                          ) : null}
-                          <pre className="code">{p.template}</pre>
-                          {p.tips?.length ? (
-                            <div style={{ marginTop: 12 }}>
-                              <div style={{ color: 'rgba(15,23,42,0.9)', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-                                使用建议
-                              </div>
-                              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                {p.tips.map((t) => (
-                                  <li key={t} style={{ marginTop: 6, color: 'rgba(15,23,42,0.86)' }}>
-                                    {t}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : null}
-                          {p.expectedOutput?.length ? (
-                            <div style={{ marginTop: 12 }}>
-                              <div style={{ color: 'rgba(15,23,42,0.9)', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>
-                                你可以期待的输出
-                              </div>
-                              <ul style={{ margin: 0, paddingLeft: 18 }}>
-                                {p.expectedOutput.map((t) => (
-                                  <li key={t} style={{ marginTop: 6, color: 'rgba(15,23,42,0.86)' }}>
-                                    {t}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : null}
+                    <div className="promptBlock">
+                      <div className="promptHeader">
+                        <strong>落地执行建议</strong>
+                        <div className="btnRow">
+                          <button className="btn btnPrimary" onClick={() => handleCopy(guideText, '实操方案已复制')}>
+                            复制方案
+                          </button>
                         </div>
                       </div>
-                    ))}
+                      <div className="promptBody">
+                        <p style={{ margin: '0 0 10px', color: 'rgba(15,23,42,0.72)', lineHeight: 1.7 }}>{practicalGuide.summary}</p>
+                        <div className="twoCol">
+                          <div>
+                            <div style={{ color: 'rgba(15,23,42,0.9)', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>推荐工具（可用现成产品）</div>
+                            <ul style={{ margin: 0, paddingLeft: 18 }}>
+                              {practicalGuide.tools.map((t) => (
+                                <li key={t.name} style={{ marginTop: 6, color: 'rgba(15,23,42,0.86)' }}>
+                                  <strong>{t.name}</strong>（{t.category}）：{t.usage}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div>
+                            <div style={{ color: 'rgba(15,23,42,0.9)', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>建议 Skill</div>
+                            <ul style={{ margin: 0, paddingLeft: 18 }}>
+                              {practicalGuide.skills.map((s) => (
+                                <li key={s} style={{ marginTop: 6, color: 'rgba(15,23,42,0.86)' }}>
+                                  {s}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ color: 'rgba(15,23,42,0.9)', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>具体怎么用（分步骤）</div>
+                          <ul style={{ margin: 0, paddingLeft: 18 }}>
+                            {practicalGuide.steps.map((s) => (
+                              <li key={s} style={{ marginTop: 6, color: 'rgba(15,23,42,0.86)' }}>
+                                {s}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div style={{ marginTop: 12 }}>
+                          <div style={{ color: 'rgba(15,23,42,0.9)', fontWeight: 700, fontSize: 13, marginBottom: 6 }}>建议交付物</div>
+                          <ul style={{ margin: 0, paddingLeft: 18 }}>
+                            {practicalGuide.outputs.map((o) => (
+                              <li key={o} style={{ marginTop: 6, color: 'rgba(15,23,42,0.86)' }}>
+                                {o}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </details>
 
